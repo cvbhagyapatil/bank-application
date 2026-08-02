@@ -1,6 +1,7 @@
 package com.bank.service;
 
 import com.bank.model.TransactionRecord;
+import com.bank.repository.AccountRepository;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -18,7 +19,7 @@ public class AccountServiceTest {
 
     @Test
     public void testDepositWithdrawTransfer() {
-        AccountService service = new AccountService();
+        AccountService service = new AccountService(new AccountRepository());
 
         var a1 = service.createAccount(BigDecimal.valueOf(100));
         var a2 = service.createAccount(BigDecimal.valueOf(50));
@@ -44,7 +45,7 @@ public class AccountServiceTest {
 
     @Test
     public void testConcurrentDepositsWithVirtualThreads() throws InterruptedException, ExecutionException {
-        AccountService service = new AccountService();
+        AccountService service = new AccountService(new AccountRepository());
         var account = service.createAccount(BigDecimal.valueOf(0));
         UUID id = account.getId();
 
@@ -70,7 +71,7 @@ public class AccountServiceTest {
 
     @Test
     public void invalidAmountAndErrors() {
-        AccountService service = new AccountService();
+        AccountService service = new AccountService(new AccountRepository());
         var acc = service.createAccount(BigDecimal.valueOf(10));
         UUID id = acc.getId();
 

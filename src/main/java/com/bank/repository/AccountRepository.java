@@ -2,6 +2,7 @@ package com.bank.repository;
 
 import com.bank.model.Account;
 import com.bank.model.TransactionRecord;
+import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
 import java.util.*;
@@ -9,6 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.locks.ReentrantLock;
 
+@Repository
 public class AccountRepository {
     // account storage
     private final ConcurrentHashMap<UUID, Account> accounts = new ConcurrentHashMap<>();
