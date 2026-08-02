@@ -2,9 +2,9 @@ name: CI - Test & Coverage
 
 on:
   push:
-    branches: [ feature-1 ]
+    branches: [ Main, feature-1 ]
   pull_request:
-    branches: [ feature-1 ]
+    branches: [ Main, feature-1 ]
 
 jobs:
   build-and-test:
@@ -104,8 +104,8 @@ PY
     - name: Commit coverage report
       if: ${{ github.actor != 'github-actions[bot]' }}
       env:
-        GIT_AUTHOR_NAME: github-actions
-        GIT_AUTHOR_EMAIL: github-actions@github.com
+        GIT_AUTHOR_NAME: Bhagyashree
+        GIT_AUTHOR_EMAIL: cvbhagyapatil@gmail.com
       run: |
         git config user.name "$GIT_AUTHOR_NAME"
         git config user.email "$GIT_AUTHOR_EMAIL"
