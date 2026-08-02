@@ -1,7 +1,6 @@
 package com.bank.controller;
 
 import com.bank.dto.AmountRequest;
-import com.bank.dto.CreateAccountRequest;
 import com.bank.dto.CreateAccountResponse;
 import com.bank.dto.TransferRequest;
 import com.bank.model.TransactionRecord;

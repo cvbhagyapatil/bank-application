@@ -1,64 +1,50 @@
 # banking-transaction-processor
 
-A Java service for processing banking transactions. Supports account management with unique account IDs, thread-safe deposits, withdrawals, transfers, validation against overdrafts and invalid amounts, and an in-memory per-account transaction ledger.
+A Spring Boot service for processing banking transactions. It supports account management, deposits, withdrawals, transfers, validation against invalid amounts, and an in-memory per-account transaction ledger.
 
 ## Project Overview
 
 - Language: Java 21
-- Framework: Spring Boot
+- Framework: Spring Boot 3
 - Build: Maven
+- Runtime: Spring Boot application with Actuator enabled
 
-The service exposes HTTP endpoints to create accounts, deposit, withdraw, transfer funds, and query balances and transaction histories. All account operations are thread-safe and use per-account locks and atomic operations to prevent race conditions.
+This service exposes HTTP endpoints to create accounts, deposit, withdraw, transfer funds, and query balances and transaction histories. It uses dependency injection, centralized error handling, and logging to support production-style observability.
 
 ## Architecture
 
-- Model/Domain: `com.bank.model` (Account, TransactionRecord, TransactionType)
-- Repository: `com.bank.repository` (in-memory store, per-account ledger, locks)
-- Service: `com.bank.service` (business logic, validation, thread-safety)
-- Controller/API: `com.bank.controller` (REST endpoints)
-- DTOs: `com.bank.dto` (request/response shapes)
+- Model/Domain: `com.bank.model`
+- Repository: `com.bank.repository`
+- Service: `com.bank.service`
+- Controller/API: `com.bank.controller`
+- DTOs: `com.bank.dto`
 
-Mermaid flowchart (end-to-end flow):
+The current implementation stores accounts in-memory and uses per-account locks plus atomic updates to preserve consistency.
 
-```mermaid
-flowchart TD
-  Client-->API["REST API (AccountController)"]
-  API-->Service["AccountService (validation & concurrency)"]
-  Service-->Repo["AccountRepository (in-memory accounts, ledger, locks)"]
-  Repo-->Storage["In-memory data structures (ConcurrentHashMap, CopyOnWriteArrayList)"]
-  Service-->Repo
-  Repo-->Service
-  Service-->API
-  API-->Client
-```
-
-## End-to-end Flow
-
-1. Client calls API.
-2. Controller validates request and forwards to `AccountService`.
-3. `AccountService` acquires per-account locks (or ordered locks for transfers), performs atomic balance updates, creates `TransactionRecord` entries, and stores them in the repository ledger.
-4. Controller returns the transaction record or result to the client.
-
-## Build, Test, and Run (local)
+## Build, Test, and Run
 
 Prerequisites: Java 21, Maven 3.8+
 
 Build:
 
 ```bash
-mvn -v
-mvn clean package -DskipTests=false
+cd c:\Workspace\bank-application\bank-application
+mvn clean package
 ```
 
 Run:
 
 ```bash
 mvn spring-boot:run
-# or run the generated jar
-# java -jar target/banking-service-1.0.0.jar
 ```
 
-Service will start on `http://localhost:8080` by default.
+Or run the packaged jar:
+
+```bash
+java -jar target/banking-service-1.0.0.jar
+```
+
+The service starts on `http://localhost:8080` by default.
 
 Run tests:
 
@@ -66,15 +52,19 @@ Run tests:
 mvn test
 ```
 
-Notes about Java 21 features used
+## Actuator Endpoints
 
-- This project is configured to compile with Java 21. The test suite includes an example of using Java 21 virtual threads (Loom) to run many concurrent account operations to validate thread-safety.
+With Actuator enabled, use:
+
+- `http://localhost:8080/actuator/health`
+- `http://localhost:8080/actuator/info`
+- `http://localhost:8080/actuator`
 
 ## API Endpoints
 
 Base URL: `http://localhost:8080/api`
 
-1. Create account
+### Create account
 
 POST `/api/accounts`
 
@@ -90,7 +80,9 @@ Response:
 { "accountId": "<uuid>" }
 ```
 
-2. Get balance
+If the body is omitted, the account is created with a zero balance.
+
+### Get balance
 
 GET `/api/accounts/{accountId}/balance`
 
@@ -100,13 +92,13 @@ Response:
 { "balance": 100.00 }
 ```
 
-3. Get transactions
+### Get transactions
 
 GET `/api/accounts/{accountId}/transactions`
 
-Response: list of transaction records
+Response: list of transaction records.
 
-4. Deposit
+### Deposit
 
 POST `/api/accounts/{accountId}/deposit`
 
@@ -116,7 +108,7 @@ Request body:
 { "amount": 25.50, "description": "paycheck" }
 ```
 
-5. Withdraw
+### Withdraw
 
 POST `/api/accounts/{accountId}/withdraw`
 
@@ -126,7 +118,7 @@ Request body:
 { "amount": 10.00, "description": "atm" }
 ```
 
-6. Transfer
+### Transfer
 
 POST `/api/accounts/transfer`
 
@@ -136,52 +128,21 @@ Request body:
 { "from": "<uuid-from>", "to": "<uuid-to>", "amount": 5.00, "description": "rent" }
 ```
 
-Example cURL commands
+## Error Handling
 
-Create account (with initial balance):
+The service returns structured JSON errors for invalid requests and server failures:
 
-```bash
-curl -X POST http://localhost:8080/api/accounts -H "Content-Type: application/json" -d '{"initialBalance":100.00}'
-```
-
-Deposit:
-
-```bash
-curl -X POST http://localhost:8080/api/accounts/<accountId>/deposit -H "Content-Type: application/json" -d '{"amount":25.50, "description":"paycheck"}'
-```
-
-Withdraw:
-
-```bash
-curl -X POST http://localhost:8080/api/accounts/<accountId>/withdraw -H "Content-Type: application/json" -d '{"amount":10.00, "description":"atm"}'
-```
-
-Transfer:
-
-```bash
-curl -X POST http://localhost:8080/api/accounts/transfer -H "Content-Type: application/json" -d '{"from":"<uuid-from>", "to":"<uuid-to>", "amount":5.00, "description":"rent"}'
-```
-
-Query balance:
-
-```bash
-curl http://localhost:8080/api/accounts/<accountId>/balance
-```
-
-Query transactions:
-
-```bash
-curl http://localhost:8080/api/accounts/<accountId>/transactions
-```
+- `400 Bad Request` for invalid input
+- `409 Conflict` for business-state violations like insufficient funds
+- `500 Internal Server Error` for unexpected errors
 
 ## Notes
 
-- The implementation uses in-memory storage; for production, replace the repository with a persistent backing store.
-Concurrency handled with per-account locks and atomic updates to prevent race conditions and overdrafts.
+- This project uses in-memory storage for accounts and transactions.
+- For production, replace `AccountRepository` with a persistence-backed implementation.
+- Logging and Actuator are enabled for better observability.
 
-## Docker (run without Java/Maven)
-
-Files added: `Dockerfile`, `docker-compose.yml`, `.dockerignore`.
+## Docker
 
 Build and run with Docker Compose:
 
@@ -196,7 +157,7 @@ docker build -t banking-service .
 docker run -p 8080:8080 banking-service
 ```
 
-Service will be available at `http://localhost:8080/api`.
+The service is available at `http://localhost:8080/api`.
 
 Notes:
 - Docker uses a multi-stage build: Maven build image then a JRE runtime image.

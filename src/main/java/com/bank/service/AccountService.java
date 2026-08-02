@@ -4,6 +4,8 @@ import com.bank.model.Account;
 import com.bank.model.TransactionRecord;
 import com.bank.model.TransactionType;
 import com.bank.repository.AccountRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -16,10 +18,11 @@ import java.util.concurrent.locks.ReentrantLock;
 
 @Service
 public class AccountService {
+    private static final Logger log = LoggerFactory.getLogger(AccountService.class);
     private final AccountRepository repository;
 
-    public AccountService() {
-        this.repository = new AccountRepository();
+    public AccountService(AccountRepository repository) {
+        this.repository = repository;
     }
 
     public Account createAccount(BigDecimal initialBalance) {
@@ -34,7 +37,6 @@ public class AccountService {
     public List<TransactionRecord> getTransactions(UUID accountId) {
         return repository.getTransactions(accountId);
     }
-
     public TransactionRecord deposit(UUID accountId, BigDecimal amount, String description) {
         Objects.requireNonNull(amount, "amount");
         if (amount.compareTo(BigDecimal.ZERO) <= 0) throw new IllegalArgumentException("Amount must be positive");
@@ -46,6 +48,7 @@ public class AccountService {
             BigDecimal postBalance = account.add(amount);
             TransactionRecord record = new TransactionRecord(UUID.randomUUID(), TransactionType.DEPOSIT, amount, Instant.now(), postBalance, description);
             repository.addTransaction(accountId, record);
+            log.info("Deposited {} to account {} resulting balance={}", amount, accountId, postBalance);
             return record;
         } finally {
             lock.unlock();
